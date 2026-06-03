@@ -1,4 +1,4 @@
--- SpendWise MVP Schema (SQLite)
+-- SpendWise MVP Schema (PostgreSQL)
 
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
@@ -6,12 +6,12 @@ CREATE TABLE IF NOT EXISTS users (
   email TEXT UNIQUE,
   display_name TEXT NOT NULL,
   currency TEXT DEFAULT 'INR',
-  monthly_salary REAL,
+  monthly_salary NUMERIC,
   salary_day INTEGER DEFAULT 1,
   plan TEXT DEFAULT 'free',
   onboarding_done INTEGER DEFAULT 0,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now'))
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS auth_tokens (
@@ -19,9 +19,9 @@ CREATE TABLE IF NOT EXISTS auth_tokens (
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   token_hash TEXT NOT NULL,
   device_name TEXT,
-  expires_at TEXT NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
   revoked INTEGER DEFAULT 0,
-  created_at TEXT DEFAULT (datetime('now'))
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS accounts (
@@ -29,12 +29,12 @@ CREATE TABLE IF NOT EXISTS accounts (
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   type TEXT NOT NULL,
-  balance REAL DEFAULT 0,
+  balance NUMERIC DEFAULT 0,
   currency TEXT DEFAULT 'INR',
   color TEXT DEFAULT '#6366F1',
   is_primary INTEGER DEFAULT 0,
   is_active INTEGER DEFAULT 1,
-  created_at TEXT DEFAULT (datetime('now'))
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS categories (
@@ -53,13 +53,13 @@ CREATE TABLE IF NOT EXISTS transactions (
   user_id TEXT NOT NULL REFERENCES users(id),
   account_id TEXT REFERENCES accounts(id),
   category_id TEXT REFERENCES categories(id),
-  amount REAL NOT NULL,
+  amount NUMERIC NOT NULL,
   type TEXT NOT NULL,
   merchant TEXT,
   note TEXT,
   source TEXT DEFAULT 'manual',
-  transacted_at TEXT NOT NULL,
-  created_at TEXT DEFAULT (datetime('now')),
+  transacted_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
   is_deleted INTEGER DEFAULT 0
 );
 
@@ -68,12 +68,12 @@ CREATE TABLE IF NOT EXISTS budgets (
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   category_id TEXT REFERENCES categories(id),
   name TEXT,
-  amount REAL NOT NULL,
+  amount NUMERIC NOT NULL,
   period TEXT DEFAULT 'monthly',
-  alert_threshold REAL DEFAULT 80.0,
+  alert_threshold NUMERIC DEFAULT 80.0,
   is_active INTEGER DEFAULT 1,
-  starts_on TEXT NOT NULL,
-  created_at TEXT DEFAULT (datetime('now'))
+  starts_on DATE NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS mandatory_expenses (
@@ -81,10 +81,10 @@ CREATE TABLE IF NOT EXISTS mandatory_expenses (
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   type TEXT NOT NULL,
-  amount REAL NOT NULL,
+  amount NUMERIC NOT NULL,
   due_day INTEGER,
   is_active INTEGER DEFAULT 1,
-  created_at TEXT DEFAULT (datetime('now'))
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS goals (
@@ -92,12 +92,12 @@ CREATE TABLE IF NOT EXISTS goals (
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   icon TEXT DEFAULT '🎯',
-  target_amount REAL NOT NULL,
-  current_amount REAL DEFAULT 0,
-  deadline TEXT,
-  monthly_contribution REAL,
+  target_amount NUMERIC NOT NULL,
+  current_amount NUMERIC DEFAULT 0,
+  deadline DATE,
+  monthly_contribution NUMERIC,
   status TEXT DEFAULT 'active',
-  created_at TEXT DEFAULT (datetime('now'))
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_txn_user_date ON transactions(user_id, transacted_at);

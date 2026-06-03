@@ -55,7 +55,7 @@ router.post('/verify-otp', async (req, res) => {
 
   const { accessToken, refreshToken } = generateTokens(user.id);
   await run(
-    "INSERT INTO auth_tokens (id, user_id, token_hash, device_name, expires_at) VALUES (?, ?, ?, ?, datetime('now', '+30 days'))",
+    "INSERT INTO auth_tokens (id, user_id, token_hash, device_name, expires_at) VALUES (?, ?, ?, ?, NOW() + INTERVAL '30 days')",
     [uuidv4(), user.id, refreshToken.slice(-20), device_name || 'unknown']
   );
 
@@ -86,7 +86,7 @@ router.patch('/me', authenticate, async (req, res) => {
   const fields = result.data;
   const sets = Object.keys(fields).map(k => `${k} = ?`).join(', ');
   const values = [...Object.values(fields), req.user.id];
-  await run(`UPDATE users SET ${sets}, updated_at = datetime('now') WHERE id = ?`, values);
+  await run(`UPDATE users SET ${sets}, updated_at = NOW() WHERE id = ?`, values);
 
   const updated = await queryOne('SELECT * FROM users WHERE id = ?', [req.user.id]);
   res.json({ success: true, user: updated });

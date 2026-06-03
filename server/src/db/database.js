@@ -1,33 +1,53 @@
-const { createClient } = require('@libsql/client');
-const path = require('path');
+const { Pool } = require('pg');
 const fs = require('fs');
+const path = require('path');
 
-let dbUrl = process.env.TURSO_DATABASE_URL;
-let authToken = process.env.TURSO_AUTH_TOKEN;
+// Railway injects DATABASE_URL automatically
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+});
 
-if (!dbUrl) {
-  // Fallback to local SQLite file
-  const DATA_DIR = path.join(__dirname, '../../data');
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  dbUrl = `file:${path.join(DATA_DIR, 'spendwise.db')}`;
+// Convert SQLite-style ? placeholders to PostgreSQL $1, $2, ...
+function toPostgres(sql, args) {
+  let i = 0;
+  const pgSql = sql.replace(/\?/g, () => `$${++i}`);
+  return { pgSql, params: args || [] };
 }
 
-const db = createClient({
-  url: dbUrl,
-  ...(authToken ? { authToken } : {}),
-});
+async function query(sql, args = []) {
+  const { pgSql, params } = toPostgres(sql, args);
+  const result = await pool.query(pgSql, params);
+  // Normalize boolean-like integer columns (pg returns actual booleans for some)
+  return result.rows;
+}
+
+async function queryOne(sql, args = []) {
+  const rows = await query(sql, args);
+  return rows[0] || null;
+}
+
+async function run(sql, args = []) {
+  const { pgSql, params } = toPostgres(sql, args);
+  const result = await pool.query(pgSql, params);
+  return result;
+}
 
 async function initDb() {
   const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
-  // Split on semicolons, execute each statement
-  const statements = schema.split(';').map(s => s.trim()).filter(s => s.length > 0);
+  // Split on semicolons carefully, skip empty
+  const statements = schema
+    .split(';')
+    .map(s => s.trim())
+    .filter(s => s.length > 0 && !s.startsWith('--'));
+
   for (const stmt of statements) {
-    await db.execute(stmt);
+    await pool.query(stmt);
   }
 
   // Seed system categories if empty
-  const result = await db.execute('SELECT COUNT(*) as count FROM categories WHERE is_system = 1');
-  if (result.rows[0].count === 0) {
+  const result = await queryOne('SELECT COUNT(*) as count FROM categories WHERE is_system = 1', []);
+  if (parseInt(result.count) === 0) {
     const cats = [
       ['cat_food',      'Food & Dining',   '🍽️', '#EF4444', 'expense', 1],
       ['cat_delivery',  'Food Delivery',   '🛵', '#F97316', 'expense', 2],
@@ -45,31 +65,13 @@ async function initDb() {
       ['cat_other_exp', 'Miscellaneous',   '📦', '#9CA3AF', 'expense', 11],
     ];
     for (const [id, name, icon, color, type, sort_order] of cats) {
-      await db.execute({
-        sql: 'INSERT INTO categories (id, name, icon, color, type, is_system, sort_order) VALUES (?, ?, ?, ?, ?, 1, ?)',
-        args: [id, name, icon, color, type, sort_order],
-      });
+      await pool.query(
+        'INSERT INTO categories (id, name, icon, color, type, is_system, sort_order) VALUES ($1,$2,$3,$4,$5,1,$6) ON CONFLICT (id) DO NOTHING',
+        [id, name, icon, color, type, sort_order]
+      );
     }
     console.log('  Seeded system categories');
   }
 }
 
-// Helper: execute a query and return rows as plain objects
-async function query(sql, args = []) {
-  const result = await db.execute({ sql, args });
-  return result.rows.map(row => Object.fromEntries(Object.entries(row)));
-}
-
-// Helper: returns first row or null
-async function queryOne(sql, args = []) {
-  const rows = await query(sql, args);
-  return rows[0] || null;
-}
-
-// Helper: execute without returning rows
-async function run(sql, args = []) {
-  const result = await db.execute({ sql, args });
-  return result;
-}
-
-module.exports = { db, initDb, query, queryOne, run };
+module.exports = { pool, initDb, query, queryOne, run };
