@@ -7,7 +7,7 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://spendwise-api.railway.app/api"
+        "EXPO_PUBLIC_API_URL": "https://spendwise-api.fly.dev/api"
       }
     },
     "preview": {
@@ -16,12 +16,12 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://spendwise-api.railway.app/api"
+        "EXPO_PUBLIC_API_URL": "https://spendwise-api.fly.dev/api"
       }
     },
     "production": {
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://spendwise-api.railway.app/api"
+        "EXPO_PUBLIC_API_URL": "https://spendwise-api.fly.dev/api"
       }
     }
   },
