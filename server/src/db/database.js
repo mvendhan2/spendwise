@@ -35,11 +35,15 @@ async function run(sql, args = []) {
 
 async function initDb() {
   const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
-  // Split on semicolons carefully, skip empty
-  const statements = schema
+  // Strip line comments first, then split on semicolons
+  const stripped = schema
+    .split('\n')
+    .filter(line => !line.trim().startsWith('--'))
+    .join('\n');
+  const statements = stripped
     .split(';')
     .map(s => s.trim())
-    .filter(s => s.length > 0 && !s.startsWith('--'));
+    .filter(s => s.length > 0);
 
   for (const stmt of statements) {
     await pool.query(stmt);
