@@ -33,7 +33,7 @@ module.exports = {
       //   EXPO_PUBLIC_API_URL=https://your-api.railway.app/api eas build
       apiUrl: process.env.EXPO_PUBLIC_API_URL || null,
       eas: {
-        projectId: process.env.EAS_PROJECT_ID || '',
+        projectId: '87bfe510-a2f7-45a6-847d-22e0b09f45c5',
       },
     },
   },
