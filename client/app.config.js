@@ -18,6 +18,7 @@ module.exports = {
       infoPlist: {
         NSFaceIDUsageDescription: 'SpendWise uses Face ID to keep your financial data secure.',
         UIBackgroundModes: ['fetch'],
+        ITSAppUsesNonExemptEncryption: false,
       },
     },
     android: {
